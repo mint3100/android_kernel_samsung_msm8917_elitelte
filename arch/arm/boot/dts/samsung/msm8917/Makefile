@@ -94,13 +94,20 @@ endif
 
 targets += dtbs
 targets += $(addprefix ../, $(DTB_LIST))
+
+ifneq ($(filter msm8917-sec-elitelte-%,$(DTB_LIST)),)
+ELITELTE_DTB_CLEAN_STAMP := $(obj)/../../.elitelte_dtb_clean
+
+$(ELITELTE_DTB_CLEAN_STAMP): FORCE
+	$(Q)rm -f $(obj)/../../msm8917-sec-elitelte-*.dtb
+	$(Q)touch $@
+endif
 endif
 
-$(obj)/../../%.dtb: $(src)/%.dts FORCE
+$(obj)/../../%.dtb: $(src)/%.dts $(ELITELTE_DTB_CLEAN_STAMP) FORCE
 	$(call if_changed_dep,dtc)
 
 dtbs: $(addprefix $(obj)/../../,$(DTB_LIST))
 
 clean-files := *.dtb *.reverse.dts
-
 
