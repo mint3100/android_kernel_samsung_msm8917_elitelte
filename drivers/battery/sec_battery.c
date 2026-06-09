@@ -8804,8 +8804,9 @@ static int sec_battery_probe(struct platform_device *pdev)
 #endif
 
 	value.intval = 0;
-	psy_do_property(battery->pdata->wireless_charger_name, set,
-					POWER_SUPPLY_PROP_CHARGE_TYPE, value);
+	if (battery->pdata->wireless_charger_name)
+		psy_do_property(battery->pdata->wireless_charger_name, set,
+						POWER_SUPPLY_PROP_CHARGE_TYPE, value);
 
 #if defined(CONFIG_STORE_MODE) && !defined(CONFIG_SEC_FACTORY)
 	battery->store_mode = true;
@@ -9094,7 +9095,7 @@ static void __exit sec_battery_exit(void)
 	platform_driver_unregister(&sec_battery_driver);
 }
 
-late_initcall(sec_battery_init);
+late_initcall_sync(sec_battery_init);
 module_exit(sec_battery_exit);
 
 MODULE_DESCRIPTION("Samsung Battery Driver");

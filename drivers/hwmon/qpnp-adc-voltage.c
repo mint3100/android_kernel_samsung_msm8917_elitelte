@@ -2622,13 +2622,17 @@ static int qpnp_vadc_probe(struct spmi_device *spmi)
 		return rc;
 	}
 	vadc->vadc_hwmon = hwmon_device_register(&vadc->adc->spmi->dev);
+	vadc->vadc_init_calib = false;
+	vadc->max_channels_available = count_adc_channel_list;
+	dev_set_drvdata(&spmi->dev, vadc);
+	list_add(&vadc->list, &qpnp_vadc_device_list);
+
 	rc = qpnp_vadc_init_thermal(vadc, spmi);
 	if (rc) {
 		dev_err(&spmi->dev, "failed to initialize qpnp thermal adc\n");
-		return rc;
+		goto err_list_del;
 	}
-	vadc->vadc_init_calib = false;
-	vadc->max_channels_available = count_adc_channel_list;
+
 	rc = qpnp_vadc_read_reg(vadc, QPNP_INT_TEST_VAL, &fab_id, 1);
 	if (rc < 0) {
 		pr_err("qpnp adc comp id failed with %d\n", rc);
@@ -2722,8 +2726,6 @@ static int qpnp_vadc_probe(struct spmi_device *spmi)
 	}
 
 	vadc->vadc_iadc_sync_lock = false;
-	dev_set_drvdata(&spmi->dev, vadc);
-	list_add(&vadc->list, &qpnp_vadc_device_list);
 
 	return 0;
 
@@ -2737,6 +2739,10 @@ err_setup:
 		i++;
 	}
 	hwmon_device_unregister(vadc->vadc_hwmon);
+
+err_list_del:
+	list_del(&vadc->list);
+	dev_set_drvdata(&spmi->dev, NULL);
 
 	return rc;
 }

@@ -2022,11 +2022,20 @@ static int sm5703_fuelgauge_probe(struct i2c_client *client,
 	struct i2c_adapter *adapter = to_i2c_adapter(client->dev.parent);
 	struct sec_fuelgauge_info *fuelgauge;
 	sec_battery_platform_data_t *pdata = NULL;
+	struct power_supply *psy_chg;
 	int ret = 0;
 	union power_supply_propval raw_soc_val;
 
 	dev_info(&client->dev,
 		"%s: SM5703 Fuelgauge Driver Loading\n", __func__);
+
+	psy_chg = power_supply_get_by_name("sm5703-charger");
+	if (!psy_chg) {
+		dev_info(&client->dev,
+			"%s: sm5703-charger is not ready, defer probe\n",
+			__func__);
+		return -EPROBE_DEFER;
+	}
 
 	if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE))
 		return -EIO;
@@ -2263,7 +2272,7 @@ static void __exit sm5703_fuelgauge_exit(void)
 	i2c_del_driver(&sm5703_fuelgauge_driver);
 }
 
-module_init(sm5703_fuelgauge_init);
+late_initcall(sm5703_fuelgauge_init);
 module_exit(sm5703_fuelgauge_exit);
 
 MODULE_DESCRIPTION("Samsung SM5703 Fuel Gauge Driver");

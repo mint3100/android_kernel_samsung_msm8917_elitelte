@@ -415,7 +415,18 @@ static struct platform_driver sec_thermistor_driver = {
 	.remove = sec_therm_remove,
 };
 
-module_platform_driver(sec_thermistor_driver);
+static int __init sec_thermistor_init(void)
+{
+	return platform_driver_register(&sec_thermistor_driver);
+}
+
+static void __exit sec_thermistor_exit(void)
+{
+	platform_driver_unregister(&sec_thermistor_driver);
+}
+
+late_initcall(sec_thermistor_init);
+module_exit(sec_thermistor_exit);
 
 MODULE_DESCRIPTION("SEC Thermistor Driver");
 MODULE_AUTHOR("Minsung Kim <ms925.kim@samsung.com>");
