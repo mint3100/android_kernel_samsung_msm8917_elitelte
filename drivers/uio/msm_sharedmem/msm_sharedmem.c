@@ -78,7 +78,7 @@ static int sharedmem_mmap(struct uio_info *info, struct vm_area_struct *vma)
 /* Setup the shared ram permissions.
  * This function currently supports the mpss client only.
  */
-static void setup_shared_ram_perms(u32 client_id, phys_addr_t addr, u32 size)
+static int setup_shared_ram_perms(u32 client_id, phys_addr_t addr, u32 size)
 {
 	int ret;
 	u32 source_vmlist[1] = {VMID_HLOS};
@@ -87,7 +87,7 @@ static void setup_shared_ram_perms(u32 client_id, phys_addr_t addr, u32 size)
 			     PERM_READ|PERM_WRITE};
 
 	if (client_id != MPSS_RMTS_CLIENT_ID)
-		return;
+		return 0;
 
 	ret = hyp_assign_phys(addr, size, source_vmlist, 1, dest_vmids,
 				dest_perms, 2);
@@ -98,6 +98,8 @@ static void setup_shared_ram_perms(u32 client_id, phys_addr_t addr, u32 size)
 			pr_err("hyp_assign_phys failed IPA=0x016%pa size=%u err=%d\n",
 				&addr, size, ret);
 	}
+
+	return ret;
 }
 
 static int msm_sharedmem_probe(struct platform_device *pdev)
@@ -155,7 +157,13 @@ static int msm_sharedmem_probe(struct platform_device *pdev)
 	}
 
 	/* Set up the permissions for the shared ram that was allocated. */
-	setup_shared_ram_perms(client_id, shared_mem_pyhsical, shared_mem_size);
+	ret = setup_shared_ram_perms(client_id, shared_mem_pyhsical,
+				     shared_mem_size);
+	if (ret) {
+		pr_err("shared memory permission setup failed client=%u addr=%pa size=%u ret=%d\n",
+		       client_id, &shared_mem_pyhsical, shared_mem_size, ret);
+		goto out;
+	}
 
 	/* Setup device */
 	info->mmap = sharedmem_mmap; /* Custom mmap function. */

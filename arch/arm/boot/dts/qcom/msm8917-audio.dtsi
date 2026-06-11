@@ -90,13 +90,18 @@
 		qcom,cdc-vdd-mic-bias-voltage = <3075000 3075000>;
 		qcom,cdc-vdd-mic-bias-current = <5000>;
 
+		cdc-vdd-spkdrv-supply = <&pm8917_s4>;
+		qcom,cdc-vdd-spkdrv-voltage = <2050000 2050000>;
+		qcom,cdc-vdd-spkdrv-current = <260000>;
+
 		qcom,cdc-mclk-clk-rate = <9600000>;
 
 		qcom,cdc-static-supplies =  "cdc-vdd-io",
 					   "cdc-vdd-pa",
 					   "cdc-vdda-cp";
 
-		qcom,cdc-on-demand-supplies = "cdc-vdd-mic-bias";
+		qcom,cdc-on-demand-supplies = "cdc-vdd-mic-bias",
+					      "cdc-vdd-spkdrv";
 		qcom,dig-cdc-base-addr = <0xc0f0000>;
 	};
 

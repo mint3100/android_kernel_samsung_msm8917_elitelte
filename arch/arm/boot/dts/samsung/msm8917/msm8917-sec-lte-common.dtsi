@@ -42,6 +42,10 @@
 		};
 	};
 
+	qcom,rmtfs_sharedmem@00000000 {
+		memory-region = <&modem_shared_mem>;
+	};
+
 	/delete-node/ smbcharger_charger_otg;
 
 	usb_otg: usb@78db000 {
@@ -218,9 +222,9 @@
 		};
 
 		modem_shared_mem: modem_shared_mem_region@0x93000000 {
-			compatible = "removed-dma-pool";
-			no-map;
-			reg = <0x0 0x93000000 0x0 0x6000000>;
+			compatible = "shared-dma-pool";
+			reusable;
+			reg = <0x0 0x93000000 0x0 0x8000000>;
 		};
 
 		tzapp_mem: tzapp_region@0 {

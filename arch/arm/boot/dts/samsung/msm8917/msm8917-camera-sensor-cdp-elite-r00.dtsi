@@ -106,6 +106,12 @@
 		qcom,gpio-req-tbl-flags = <0>;
 		qcom,gpio-req-tbl-label = "CAM_VIO";
 		qcom,sensor-position = <1>;
+		cam_vaf-supply = <&pm8917_l10>;
+		qcom,cam-vreg-name = "cam_vaf";
+		qcom,cam-vreg-type = <0>;
+		qcom,cam-vreg-min-voltage = <2850000>;
+		qcom,cam-vreg-max-voltage = <2850000>;
+		qcom,cam-vreg-op-mode = <100000>;
 		qcom,cam-power-seq-type = "sensor_gpio";
 		qcom,cam-power-seq-val = "sensor_gpio_vio";
 		qcom,cam-power-seq-cfg-val = <1>;
@@ -145,11 +151,11 @@
 		qcom,mount-angle = <90>;
 		cam_vana-supply = <&pm8917_l22>;
 		cam_vaf-supply = <&pm8917_l10>;
-		qcom,cam-vreg-name = "cam_vaf";
-		qcom,cam-vreg-type = <0>;	
-		qcom,cam-vreg-min-voltage = <2850000>;
-		qcom,cam-vreg-max-voltage = <2850000>;
-		qcom,cam-vreg-op-mode = <2850000>;
+		qcom,cam-vreg-name = "cam_vana", "cam_vaf";
+		qcom,cam-vreg-type = <0 0>;
+		qcom,cam-vreg-min-voltage = <2800000 2850000>;
+		qcom,cam-vreg-max-voltage = <2800000 2850000>;
+		qcom,cam-vreg-op-mode = <80000 100000>;
 		pinctrl-names = "cam_default", "cam_suspend";
 		pinctrl-0 = <&cam_sensor_mclk0_default &cam_sensor_rear_default &cam_core_en_default &cam_vio_en_default &cam_sensor_en_default>;
 		pinctrl-1 = <&cam_sensor_mclk0_sleep &cam_sensor_rear_sleep &cam_core_en_sleep &cam_vio_en_sleep &cam_sensor_en_sleep>;
@@ -185,12 +191,13 @@
 		qcom,csid-sd-index = <1>;
 		qcom,mount-angle = <270>;
 		qcom,eeprom-src = <&eeprom1>;
+		cam_vana-supply = <&pm8917_l22>;
 		cam_vaf-supply = <&pm8917_l10>;
-		qcom,cam-vreg-name = "cam_vaf";
-		qcom,cam-vreg-type = <0>;
-		qcom,cam-vreg-min-voltage = <2850000>;
-		qcom,cam-vreg-max-voltage = <2850000>;
-		qcom,cam-vreg-op-mode = <2850000>;
+		qcom,cam-vreg-name = "cam_vana", "cam_vaf";
+		qcom,cam-vreg-type = <0 0>;
+		qcom,cam-vreg-min-voltage = <2800000 2850000>;
+		qcom,cam-vreg-max-voltage = <2800000 2850000>;
+		qcom,cam-vreg-op-mode = <80000 100000>;
 		pinctrl-names = "cam_default", "cam_suspend";
 		pinctrl-0 = <&cam_sensor_mclk1_default &cam_sensor_front_default &cam_core_en_default &cam_vio_en_default &cam_sensor_en_default>;
 		pinctrl-1 = <&cam_sensor_mclk1_sleep &cam_sensor_front_sleep &cam_core_en_sleep &cam_vio_en_sleep &cam_sensor_en_sleep>;
@@ -219,5 +226,4 @@
 		clock-names = "cam_src_clk", "cam_clk";
 	};		
 };
-
 

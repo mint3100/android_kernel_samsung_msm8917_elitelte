@@ -134,7 +134,7 @@ struct memshare_rd_device {
 	struct dma_attrs attrs;
 };
 
-static void memshare_set_nhlos_permission(phys_addr_t addr, u64 size)
+static int memshare_set_nhlos_permission(phys_addr_t addr, u64 size)
 {
 	int ret;
 	u32 source_vmlist[1] = {VMID_HLOS};
@@ -144,7 +144,7 @@ static void memshare_set_nhlos_permission(phys_addr_t addr, u64 size)
 	if (!size || !addr) {
 		pr_err("%s: Unable to handle addr(0x%llx), size(%llu)",
 				__func__, (uint64_t)addr, size);
-		return;
+		return -EINVAL;
 	}
 
 	ret = hyp_assign_phys(addr, size, source_vmlist, 1, dest_vmids,
@@ -160,6 +160,8 @@ static void memshare_set_nhlos_permission(phys_addr_t addr, u64 size)
 			pr_err("hyp_assign_phys failed IPA=0x016%pa size=%llu err=%d\n",
 				&addr, size, ret);
 	}
+
+	return ret;
 }
 
 static void memshare_unset_nhlos_permission(phys_addr_t addr, u64 size)
@@ -528,7 +530,7 @@ static struct notifier_block nb = {
 	.notifier_call = modem_notifier_cb,
 };
 
-static void shared_hyp_mapping(int client_id)
+static int shared_hyp_mapping(int client_id)
 {
 	int ret;
 	u32 source_vmlist[1] = {VMID_HLOS};
@@ -538,7 +540,7 @@ static void shared_hyp_mapping(int client_id)
 
 	if (client_id == DHMS_MEM_CLIENT_INVALID) {
 		pr_err("memshare: %s, Invalid Client\n", __func__);
-		return;
+		return -EINVAL;
 	}
 
 	ret = hyp_assign_phys(memblock[client_id].phy_addr,
@@ -547,11 +549,15 @@ static void shared_hyp_mapping(int client_id)
 			dest_perms, 2);
 
 	if (ret != 0) {
-		pr_err("memshare: hyp_assign_phys failed size=%u err=%d\n",
+		pr_err("memshare: hyp_assign_phys failed client=%u proc=%u addr=%pa size=%u err=%d\n",
+				memblock[client_id].client_id,
+				memblock[client_id].peripheral,
+				&memblock[client_id].phy_addr,
 				memblock[client_id].size, ret);
-		return;
+		return ret;
 	}
 	memblock[client_id].hyp_mapping = 1;
+	return 0;
 }
 
 static int handle_alloc_req(void *req_h, void *req, void *conn_h)
@@ -579,14 +585,25 @@ static int handle_alloc_req(void *req_h, void *req, void *conn_h)
 		memblock[GPS].size = 0;
 	} else {
 #ifdef CONFIG_SEC_BSP
-		memshare_set_nhlos_permission(memblock[GPS].phy_addr,
+		rc = memshare_set_nhlos_permission(memblock[GPS].phy_addr,
 				alloc_req->num_bytes);
-		memshare_rd_set(memsh_drv->memshare_rd_dev, memblock[GPS].phy_addr,
-				alloc_req->num_bytes, memblock[GPS].virtual_addr);
-		memblock[GPS].alloted = 1;
-		memblock[GPS].size = alloc_req->num_bytes;
+		if (rc) {
+			pr_err("memshare: GPS hyp assignment failed addr=%pa size=%u rc=%d\n",
+					&memblock[GPS].phy_addr,
+					alloc_req->num_bytes, rc);
+			alloc_resp.resp = QMI_RESULT_FAILURE_V01;
+			memblock[GPS].size = 0;
+		} else {
+			memshare_rd_set(memsh_drv->memshare_rd_dev,
+					memblock[GPS].phy_addr,
+					alloc_req->num_bytes,
+					memblock[GPS].virtual_addr);
+			memblock[GPS].alloted = 1;
+			memblock[GPS].size = alloc_req->num_bytes;
+		}
 #endif
-		alloc_resp.resp = QMI_RESULT_SUCCESS_V01;
+		if (!rc)
+			alloc_resp.resp = QMI_RESULT_SUCCESS_V01;
 	}
 
 	mutex_unlock(&memsh_drv->mem_share);
@@ -654,8 +671,6 @@ static int handle_alloc_generic_req(void *req_h, void *req, void *conn_h)
 #ifdef CONFIG_SEC_BSP
 			if (VENDOR == memblock[client_id].client_id &&
 			    DHMS_MEM_PROC_MPSS_V01 == memblock[client_id].peripheral) {
-				memshare_set_nhlos_permission(memblock[client_id].phy_addr,
-						alloc_req->num_bytes);
 				memshare_rd_set(memsh_drv->memshare_rd_dev,
 						memblock[client_id].phy_addr,
 						alloc_req->num_bytes,
@@ -666,14 +681,24 @@ static int handle_alloc_generic_req(void *req_h, void *req, void *conn_h)
 	}
 	memblock[client_id].sequence_id = alloc_req->sequence_id;
 
-	fill_alloc_response(alloc_resp, client_id, &resp);
 	/*
 	 * Perform the Hypervisor mapping in order to avoid XPU viloation
 	 * to the allocated region for Modem Clients
 	 */
-	if (!memblock[client_id].hyp_mapping &&
-		memblock[client_id].alloted)
-		shared_hyp_mapping(client_id);
+	if (!resp && !memblock[client_id].hyp_mapping &&
+		memblock[client_id].alloted) {
+		rc = shared_hyp_mapping(client_id);
+		if (rc) {
+			pr_err("memshare: hyp assignment failed client=%u proc=%u addr=%pa size=%u rc=%d\n",
+					memblock[client_id].client_id,
+					memblock[client_id].peripheral,
+					&memblock[client_id].phy_addr,
+					memblock[client_id].size, rc);
+			resp = 1;
+		}
+	}
+
+	fill_alloc_response(alloc_resp, client_id, &resp);
 	mutex_unlock(&memsh_drv->mem_share);
 	pr_debug("memshare: alloc_resp.num_bytes :%d, alloc_resp.handle :%lx, alloc_resp.mem_req_result :%lx\n",
 			  alloc_resp->dhms_mem_alloc_addr_info[0].num_bytes,
@@ -1001,9 +1026,9 @@ int memshare_alloc(struct device *dev,
 		ret = -ENOMEM;
 		return ret;
 	}
-	pr_debug("pblk->phy_addr :%lx, pblk->virtual_addr %lx\n",
-		  (unsigned long int)pblk->phy_addr,
-		  (unsigned long int)pblk->virtual_addr);
+	pr_info("memshare: alloc dev=%s removed_mem=%p size=%u phys=%pa virt=%p\n",
+		  dev_name(dev), dev->removed_mem, block_size,
+		  &pblk->phy_addr, pblk->virtual_addr);
 	return 0;
 }
 
@@ -1092,7 +1117,7 @@ static int memshare_child_probe(struct platform_device *pdev)
 	memblock[num_clients].client_id = client_id;
 
 	if (memblock[num_clients].guarantee) {
-		rc = memshare_alloc(memsh_child->dev,
+		rc = memshare_alloc(memsh_drv->dev,
 				memblock[num_clients].size,
 				&memblock[num_clients]);
 		if (rc) {
@@ -1131,6 +1156,8 @@ static int memshare_probe(struct platform_device *pdev)
 	drv->dev = &pdev->dev;
 	memsh_drv = drv;
 	platform_set_drvdata(pdev, memsh_drv);
+	pr_info("memshare: probe dev=%s removed_mem=%p\n",
+			dev_name(&pdev->dev), pdev->dev.removed_mem);
 	initialize_client();
 	num_clients = 0;
 
