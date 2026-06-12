@@ -94,6 +94,11 @@ static int setup_shared_ram_perms(u32 client_id, phys_addr_t addr, u32 size)
 	if (ret != 0) {
 		if (ret == -ENOSYS)
 			pr_warn("hyp_assign_phys is not supported!");
+		else if (ret == -EIO) {
+			pr_warn("hyp_assign_phys returned -EIO; keeping legacy modem shared memory binding addr=%pa size=%u\n",
+				&addr, size);
+			ret = 0;
+		}
 		else
 			pr_err("hyp_assign_phys failed IPA=0x016%pa size=%u err=%d\n",
 				&addr, size, ret);

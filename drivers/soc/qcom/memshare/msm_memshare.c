@@ -156,6 +156,11 @@ static int memshare_set_nhlos_permission(phys_addr_t addr, u64 size)
 	if (ret != 0) {
 		if (ret == -ENOSYS)
 			pr_warn("hyp_assign_phys is not supported!");
+		else if (ret == -EIO) {
+			pr_warn("hyp_assign_phys failed with -EIO; assuming legacy modem firmware already owns IPA=0x016%pa size=%llu\n",
+				&addr, size);
+			ret = 0;
+		}
 		else
 			pr_err("hyp_assign_phys failed IPA=0x016%pa size=%llu err=%d\n",
 				&addr, size, ret);
@@ -186,6 +191,9 @@ static void memshare_unset_nhlos_permission(phys_addr_t addr, u64 size)
 	if (ret != 0) {
 		if (ret == -ENOSYS)
 			pr_warn("hyp_assign_phys is not supported!");
+		else if (ret == -EIO)
+			pr_warn("hyp_assign_phys release returned -EIO for IPA=0x016%pa size=%llu\n",
+				&addr, size);
 		else
 			pr_err("hyp_assign_phys failed IPA=0x016%pa size=%llu err=%d\n",
 				&addr, size, ret);
@@ -549,6 +557,15 @@ static int shared_hyp_mapping(int client_id)
 			dest_perms, 2);
 
 	if (ret != 0) {
+		if (ret == -EIO) {
+			pr_warn("memshare: legacy HYP assignment already configured client=%u proc=%u addr=%pa size=%u\n",
+				memblock[client_id].client_id,
+				memblock[client_id].peripheral,
+				&memblock[client_id].phy_addr,
+				memblock[client_id].size);
+			memblock[client_id].hyp_mapping = 0;
+			return 0;
+		}
 		pr_err("memshare: hyp_assign_phys failed client=%u proc=%u addr=%pa size=%u err=%d\n",
 				memblock[client_id].client_id,
 				memblock[client_id].peripheral,
