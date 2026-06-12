@@ -1125,6 +1125,8 @@ static DEVICE_ATTR(reactive_alert, S_IRUGO | S_IWUSR | S_IWGRP,
 static struct device_attribute *sensor_attrs[] = {
 	&dev_attr_name,
 	&dev_attr_vendor,
+	&dev_attr_enable,
+	&dev_attr_poll_delay,
 	&dev_attr_calibration,
 	&dev_attr_lowpassfilter,
 	&dev_attr_raw_data,
@@ -1594,4 +1596,3 @@ module_exit(k2hh_exit);
 MODULE_DESCRIPTION("k2hh accelerometer sensor driver");
 MODULE_AUTHOR("Samsung Electronics");
 MODULE_LICENSE("GPL");
-

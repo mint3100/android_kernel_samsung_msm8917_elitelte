@@ -1151,12 +1151,14 @@ static DEVICE_ATTR(state, S_IRUGO, proximity_state_show, NULL);
 static DEVICE_ATTR(raw_data, S_IRUGO, proximity_state_show, NULL);
 static DEVICE_ATTR(vendor, S_IRUSR | S_IRGRP, stk3013_vendor_show, NULL);
 static DEVICE_ATTR(name, S_IRUSR | S_IRGRP, stk3013_name_show, NULL);
+static struct device_attribute dev_attr_enable;
 
 static struct device_attribute *prox_sensor_attrs[] = {
 #ifdef PROXIMITY_CALIBRATION
 	&dev_attr_prox_cal,
 	&dev_attr_prox_offset_pass,
 #endif
+	&dev_attr_enable,
 	&dev_attr_prox_avg,
 	&dev_attr_prox_trim,
 	&dev_attr_thresh_high,
