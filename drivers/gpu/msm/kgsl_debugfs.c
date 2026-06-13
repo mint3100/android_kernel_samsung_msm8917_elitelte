@@ -233,14 +233,14 @@ void kgsl_process_init_debugfs(struct kgsl_process_private *private)
 	/*
 	 * Both debugfs_create_dir() and debugfs_create_file() return
 	 * ERR_PTR(-ENODEV) if debugfs is disabled in the kernel but return
-	 * NULL on error when it is enabled. For both usages we need to check
-	 * for ERROR or NULL and only print a warning on an actual failure
-	 * (i.e. - when the return value is NULL)
+	 * NULL on error when it is enabled. This path is diagnostic-only, so
+	 * keep failures quiet enough for production userspace that opens KGSL
+	 * before debugfs is accessible.
 	 */
 
 	if (IS_ERR_OR_NULL(private->debug_root)) {
-		WARN((private->debug_root == NULL),
-			"Unable to create debugfs dir for %s\n", name);
+		pr_debug("kgsl: unable to create debugfs dir for %s\n",
+			name);
 		private->debug_root = NULL;
 		return;
 	}
@@ -249,8 +249,8 @@ void kgsl_process_init_debugfs(struct kgsl_process_private *private)
 		(void *) ((unsigned long) private->pid), &process_mem_fops);
 
 	if (IS_ERR_OR_NULL(dentry))
-		WARN((dentry == NULL),
-			"Unable to create 'mem' file for %s\n", name);
+		pr_debug("kgsl: unable to create debugfs mem file for %s\n",
+			name);
 }
 
 void kgsl_core_debugfs_init(void)

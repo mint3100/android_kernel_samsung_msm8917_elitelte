@@ -227,3 +227,6 @@
 	};		
 };
 
+&msm_cam_smmu_cb2 {
+	status = "disabled";
+};

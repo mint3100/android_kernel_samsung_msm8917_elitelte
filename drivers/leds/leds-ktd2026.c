@@ -171,7 +171,7 @@ static bool ktd2026_check_all_leds_off(void)
 	check_led += data->shadow_reg[KTD2026_REG_LED2];
 	check_led += data->shadow_reg[KTD2026_REG_LED3];
 
-	pr_info("%s check all led brightness = 0x%x\n", __func__, check_led);
+	pr_debug("%s check all led brightness = 0x%x\n", __func__, check_led);
 	return ( check_led == 0 );
 }
 
@@ -207,7 +207,7 @@ static int leds_i2c_write_all(struct i2c_client *client)
 		}
 	}
 
-	print_hex_dump(KERN_ERR, "ktd2026: ",
+	print_hex_dump(KERN_DEBUG, "ktd2026: ",
 			DUMP_PREFIX_OFFSET, 32, 1,
 			&data->shadow_reg[KTD2026_REG_EN_RST],
 			KTD2026_REG_MAX, false);

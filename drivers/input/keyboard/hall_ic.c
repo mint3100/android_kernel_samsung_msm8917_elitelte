@@ -34,6 +34,8 @@ struct hall_drvdata {
 };
 
 static bool flip_cover = 1;
+static bool hall_irq_enabled = true;
+static struct hall_drvdata *g_hall_data;
 
 static ssize_t hall_detect_show(struct device *dev,
 				struct device_attribute *attr, char *buf)
@@ -46,6 +48,43 @@ static ssize_t hall_detect_show(struct device *dev,
 	return strlen(buf);
 }
 static DEVICE_ATTR(hall_detect, 0444, hall_detect_show, NULL);
+
+static ssize_t hall_irq_ctrl_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%s\n", hall_irq_enabled ? "ENABLE" : "DISABLE");
+}
+
+static ssize_t hall_irq_ctrl_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	struct hall_drvdata *ddata = g_hall_data;
+	bool enable;
+
+	if (!ddata)
+		return -ENODEV;
+
+	if (sysfs_streq(buf, "1") || sysfs_streq(buf, "ENABLE") ||
+			sysfs_streq(buf, "enable"))
+		enable = true;
+	else if (sysfs_streq(buf, "0") || sysfs_streq(buf, "DISABLE") ||
+			sysfs_streq(buf, "disable"))
+		enable = false;
+	else
+		return -EINVAL;
+
+	if (enable != hall_irq_enabled) {
+		if (enable)
+			enable_irq(ddata->irq_flip_cover);
+		else
+			disable_irq(ddata->irq_flip_cover);
+		hall_irq_enabled = enable;
+	}
+
+	return count;
+}
+static DEVICE_ATTR(hall_irq_ctrl, 0660, hall_irq_ctrl_show, hall_irq_ctrl_store);
 
 #ifdef CONFIG_SEC_FACTORY
 static void flip_cover_work(struct work_struct *work)
@@ -242,12 +281,19 @@ static int hall_probe(struct platform_device *pdev)
 	__set_bit(EV_REP, input->evbit);
 
 	init_hall_ic_irq(input);
+	g_hall_data = ddata;
 
 	if (ddata->gpio_flip_cover != 0) {
 		error = device_create_file(sec_key, &dev_attr_hall_detect);
 		if (error < 0) {
 			pr_err("Failed to create device file(%s)!, error: %d\n",
 				dev_attr_hall_detect.attr.name, error);
+		}
+
+		error = device_create_file(sec_key, &dev_attr_hall_irq_ctrl);
+		if (error < 0) {
+			pr_err("Failed to create device file(%s)!, error: %d\n",
+				dev_attr_hall_irq_ctrl.attr.name, error);
 		}
 	}
 
@@ -279,6 +325,11 @@ static int hall_remove(struct platform_device *pdev)
 	struct hall_drvdata *ddata = platform_get_drvdata(pdev);
 	struct input_dev *input = ddata->input;
 
+	if (g_hall_data == ddata)
+		g_hall_data = NULL;
+
+	device_remove_file(sec_key, &dev_attr_hall_irq_ctrl);
+	device_remove_file(sec_key, &dev_attr_hall_detect);
 	device_init_wakeup(&pdev->dev, 0);
 	input_unregister_device(input);
 	wake_lock_destroy(&ddata->flip_wake_lock);

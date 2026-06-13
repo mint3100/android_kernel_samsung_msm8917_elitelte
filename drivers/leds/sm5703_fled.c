@@ -192,7 +192,15 @@ static ssize_t flash_store(struct device *dev, struct device_attribute *attr,
 	return count;
 }
 
-static DEVICE_ATTR(rear_flash, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH, NULL, flash_store);
+static ssize_t flash_show(struct device *dev, struct device_attribute *attr,
+		char *buf)
+{
+	return scnprintf(buf, PAGE_SIZE, "%d\n",
+			(assistive_light || factory_light) ? 1 : 0);
+}
+
+static DEVICE_ATTR(rear_flash, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH,
+		flash_show, flash_store);
 
 int create_flash_sysfs(void)
 {
@@ -1253,5 +1261,4 @@ MODULE_DESCRIPTION("Siliconmitus SM5703 FlashLED Driver");
 MODULE_VERSION(SM5703_DRV_VER);
 MODULE_LICENSE("GPL");
 MODULE_ALIAS("platform:sm5703-flashLED");
-
 
