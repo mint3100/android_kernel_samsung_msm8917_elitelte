@@ -28,7 +28,13 @@
  * QSEED3 coefficeint LUT tables is passed by the user space using this IOCTL.
  */
 #define MSMFB_MDP_SET_CFG _IOW(MDP_IOCTL_MAGIC, 130, \
-					      struct mdp_set_cfg)
+						      struct mdp_set_cfg)
+
+#ifdef __LP64
+#define MDP_LAYER_COMMIT_V1_PAD 3
+#else
+#define MDP_LAYER_COMMIT_V1_PAD 4
+#endif
 
 /**********************************************************************
 LAYER FLAG CONFIGURATION
@@ -74,6 +80,17 @@ LAYER FLAG CONFIGURATION
 
 /* Flag enabled qseed3 scaling for the current layer */
 #define MDP_LAYER_ENABLE_QSEED3_SCALE   0x800
+
+/**********************************************************************
+DESTINATION SCALER FLAG CONFIGURATION
+**********************************************************************/
+#define MDP_DESTSCALER_ENABLE		0x1
+#define MDP_DESTSCALER_SCALE_UPDATE	0x2
+#define MDP_DESTSCALER_ENHANCER_UPDATE	0x4
+
+/* Single hardware pipe can fetch multiple rectangles. */
+#define MDP_LAYER_MULTIRECT_ENABLE		0x1000
+#define MDP_LAYER_MULTIRECT_PARALLEL_MODE	0x2000
 
 /**********************************************************************
 VALIDATE/COMMIT FLAG CONFIGURATION
@@ -297,6 +314,18 @@ struct mdp_output_layer {
 };
 
 /*
+ * Destination scaling info structure holds setup parameters for upscaling
+ * settings in the destination scaling block.
+ */
+struct mdp_destination_scaler_data {
+	uint32_t		flags;
+	uint32_t		dest_scaler_ndx;
+	uint32_t		lm_width;
+	uint32_t		lm_height;
+	uint64_t __user	scale;
+};
+
+/*
  * Commit structure holds layer stack send by client for validate and commit
  * call. If layers are different between validate and commit call then commit
  * call will also do validation. In such case, commit may fail.
@@ -362,8 +391,14 @@ struct mdp_layer_commit_v1 {
 	 */
 	int			retire_fence;
 
-	/* 32-bits reserved value for future usage. */
-	uint32_t		reserved[6];
+	/*
+	 * Scaler data and control for setting up destination scaler.
+	 * On 32-bit targets these fields occupy the first two legacy reserved
+	 * words, preserving the ioctl structure size expected by this kernel.
+	 */
+	void __user		*dest_scaler;
+	uint32_t		dest_scaler_cnt;
+	uint32_t		reserved[MDP_LAYER_COMMIT_V1_PAD];
 };
 
 /*

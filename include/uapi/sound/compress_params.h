@@ -65,6 +65,7 @@
 #define MAX_NUM_FRAMES_PER_BUFFER 1
 #define COMPRESSED_META_DATA_MODE 0x10
 #define META_DATA_LEN_BYTES 36
+#define COMPRESSED_TIMESTAMP_FLAG 0x1
 #define Q6_AC3_DECODER	0x00010BF6
 #define Q6_EAC3_DECODER 0x00010C3C
 #define Q6_DTS		0x00010D88
@@ -97,7 +98,10 @@
 #define SND_AUDIOCODEC_EAC3                  ((__u32) 0x00000018)
 #define SND_AUDIOCODEC_ALAC                  ((__u32) 0x00000019)
 #define SND_AUDIOCODEC_APE                   ((__u32) 0x00000020)
-#define SND_AUDIOCODEC_MAX                   SND_AUDIOCODEC_APE
+#define SND_AUDIOCODEC_DSD                   ((__u32) 0x00000021)
+#define SND_AUDIOCODEC_APTX                  ((__u32) 0x00000022)
+#define SND_AUDIOCODEC_TRUEHD                ((__u32) 0x00000023)
+#define SND_AUDIOCODEC_MAX                   SND_AUDIOCODEC_TRUEHD
 /*
  * Profile and modes are listed with bit masks. This allows for a
  * more compact representation of fields that will not evolve
@@ -440,6 +444,10 @@ struct snd_codec_desc {
 	__u32 reserved[15];
 } __attribute__((packed, aligned(4)));
 
+struct snd_codec_metadata {
+	__u64 timestamp;
+} __attribute__((packed, aligned(4)));
+
 /** struct snd_codec
  * @id: Identifies the supported audio encoder/decoder.
  *		See SND_AUDIOCODEC macros.
@@ -479,7 +487,8 @@ struct snd_codec {
 	__u32 align;
 	__u32 compr_passthr;
 	union snd_codec_options options;
-	__u32 reserved[3];
+	__u32 flags;
+	__u32 reserved[2];
 } __attribute__((packed, aligned(4)));
 
 #endif

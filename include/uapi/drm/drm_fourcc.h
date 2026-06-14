@@ -132,4 +132,16 @@
 #define DRM_FORMAT_YUV444	fourcc_code('Y', 'U', '2', '4') /* non-subsampled Cb (1) and Cr (2) planes */
 #define DRM_FORMAT_YVU444	fourcc_code('Y', 'V', '2', '4') /* non-subsampled Cr (1) and Cb (2) planes */
 
+/* Vendor IDs for format modifiers. Keep in sync with libdrm. */
+#define DRM_FORMAT_MOD_NONE           0
+#define DRM_FORMAT_MOD_VENDOR_INTEL   0x01
+#define DRM_FORMAT_MOD_VENDOR_AMD     0x02
+#define DRM_FORMAT_MOD_VENDOR_NV      0x03
+#define DRM_FORMAT_MOD_VENDOR_SAMSUNG 0x04
+#define DRM_FORMAT_MOD_VENDOR_QCOM    0x05
+
+#define fourcc_mod_code(vendor, val) \
+	((((__u64)DRM_FORMAT_MOD_VENDOR_## vendor) << 56) | \
+	 ((val) & 0x00ffffffffffffffULL))
+
 #endif /* DRM_FOURCC_H */
